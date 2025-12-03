@@ -12,6 +12,14 @@ export default function CadastroPage(){
   const [region_id,setRegionId]=useState('')
   const [requested_role,setRequestedRole]=useState('pessoa_comum')
   const [status,setStatus]=useState('')
+  const [instagram,setInstagram]=useState('')
+  const [facebook,setFacebook]=useState('')
+  const [twitter,setTwitter]=useState('')
+  const [linkedin,setLinkedin]=useState('')
+  const [city,setCity]=useState('')
+  const [stateVal,setStateVal]=useState('')
+  const [dob,setDob]=useState('')
+  const [notes,setNotes]=useState('')
   const roles=[
     {value:'pessoa_comum',label:'Pessoa comum'},
     {value:'presidente_regional',label:'Presidente regional'},
@@ -20,7 +28,19 @@ export default function CadastroPage(){
   ]
 
   useEffect(()=>{
-    supabase.from('regions').select('id,name').order('name').then(({data})=>{ if(data) setRegions((data as Region[])||[]) })
+    (async()=>{
+      try{
+        const r = await fetch('/api/common/regions')
+        if(r.ok){ const j = await r.json(); setRegions(((j.items||[]) as Region[])) }
+        else{
+          const { data } = await supabase.from('regions').select('id,name').order('name')
+          setRegions(((data||[]) as Region[]))
+        }
+      }catch{
+        const { data } = await supabase.from('regions').select('id,name').order('name')
+        setRegions(((data||[]) as Region[]))
+      }
+    })()
   },[])
 
   async function onSubmit(e: React.FormEvent){
@@ -28,7 +48,17 @@ export default function CadastroPage(){
     setStatus('')
     const resp = await fetch('/api/public/register',{
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ full_name,email,phone,region_id:region_id||null,requested_role })
+      body: JSON.stringify({
+        full_name,email,phone,region_id:region_id||null,requested_role,
+        instagram: instagram||null,
+        facebook: facebook||null,
+        twitter: twitter||null,
+        linkedin: linkedin||null,
+        city: city||null,
+        state: stateVal||null,
+        dob: dob||null,
+        notes: notes||null
+      })
     })
     if(!resp.ok){
       const j = await resp.json().catch(()=>({ error:'Erro' }))
@@ -54,6 +84,16 @@ export default function CadastroPage(){
           <select className="select" value={requested_role} onChange={e=>setRequestedRole(e.target.value)}>
             {roles.map(r=> <option key={r.value} value={r.value}>{r.label}</option>)}
           </select>
+          <div className="subtitle">Redes sociais (opcional)</div>
+          <input className="input" placeholder="Instagram" value={instagram} onChange={e=> setInstagram(e.target.value)} />
+          <input className="input" placeholder="Facebook" value={facebook} onChange={e=> setFacebook(e.target.value)} />
+          <input className="input" placeholder="Twitter" value={twitter} onChange={e=> setTwitter(e.target.value)} />
+          <input className="input" placeholder="LinkedIn" value={linkedin} onChange={e=> setLinkedin(e.target.value)} />
+          <div className="subtitle">Outros (opcional)</div>
+          <input className="input" placeholder="Cidade" value={city} onChange={e=> setCity(e.target.value)} />
+          <input className="input" placeholder="Estado" value={stateVal} onChange={e=> setStateVal(e.target.value)} />
+          <input className="input" placeholder="Data de nascimento" type="date" value={dob} onChange={e=> setDob(e.target.value)} />
+          <input className="input" placeholder="Observações" value={notes} onChange={e=> setNotes(e.target.value)} />
           {status && <div className="subtitle">{status}</div>}
           <button className="btn" type="submit">Enviar</button>
         </form>

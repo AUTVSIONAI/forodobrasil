@@ -30,9 +30,8 @@ export async function POST(req: Request){
     const regionRaw = body.region_id
     let region_id: string|null|undefined = (regionRaw===null)? null : (typeof regionRaw==='string'? String(regionRaw) : undefined)
     let role = body.role? String(body.role) : undefined
-    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-    if(!uuidRe.test(user_id)) return NextResponse.json({ error: 'invalid user_id' },{ status: 400 })
-    // validate region_id by existence instead of UUID format (supports non-UUID IDs)
+    if(!user_id) return NextResponse.json({ error: 'invalid user_id' },{ status: 400 })
+    // validate region_id by existence (supports non-UUID IDs)
     if(typeof region_id==='string'){
       const { data: exists } = await service.from('regions').select('id').eq('id', region_id).limit(1)
       if(!exists || !exists.length) region_id = null

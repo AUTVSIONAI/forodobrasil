@@ -11,10 +11,14 @@ export async function GET(){
     const s = getServiceSupabase()
     const pendRes = await s.from('pending_registrations').select('id,region_id,created_at').eq('status','pending')
     const regsRes = await s.from('regions').select('id,code,name')
-    const memRes = await s.from('region_member_counts').select('region_id,region_name,member_count')
+    const profRes = await s.from('user_profiles').select('user_id,region_id')
     const pendByRegion: Record<string,number> = {}
     ;(pendRes.data||[]).forEach((p:Pending)=>{ if(p.region_id) pendByRegion[p.region_id]=(pendByRegion[p.region_id]||0)+1 })
-    return NextResponse.json({ pendByRegion, regions: regsRes.data||[], memberCounts: memRes.data||[] })
+    const rmap = new Map((regsRes.data||[]).map((r: { id:string; name:string })=> [r.id, r.name]))
+    const countsMap: Record<string,number> = {}
+    ;(profRes.data||[]).forEach((p: { region_id: string|null })=>{ if(p.region_id) countsMap[p.region_id]=(countsMap[p.region_id]||0)+1 })
+    const memberCounts = Object.keys(countsMap).map(region_id=> ({ region_id, region_name: rmap.get(region_id)||null, member_count: countsMap[region_id] }))
+    return NextResponse.json({ pendByRegion, regions: regsRes.data||[], memberCounts })
   }catch(e: unknown){
     return NextResponse.json({ pendByRegion: {}, regions: [], memberCounts: [] })
   }
