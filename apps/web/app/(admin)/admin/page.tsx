@@ -11,7 +11,7 @@ export default async function AdminPage(){
   const { data: userRes } = await supabase.auth.getUser()
   const uid = userRes.user?.id as string
   if(!uid) return <div className="container" style={{paddingTop:32}}>Sem acesso</div>
-  const service = getServiceSupabase()
+  const service = process.env.SUPABASE_SERVICE_ROLE_KEY? getServiceSupabase() : getServerSupabase()
   const { data: me } = await service.from('user_profiles').select('role').eq('user_id', uid).single()
   if(me?.role!=='admin') return <div className="container" style={{paddingTop:32}}>Sem acesso</div>
   const nowIso = new Date().toISOString()

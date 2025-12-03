@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { getServiceSupabase } from '@/lib/supabase/server'
+import { getServiceSupabase, getServerSupabase } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -20,7 +20,7 @@ export async function GET(req: Request){
     const payload = token.split('.')[1]
     const decoded = decodePayload(payload)
     const sub = decoded?.sub as string||''
-    const service = getServiceSupabase()
+    const service = process.env.SUPABASE_SERVICE_ROLE_KEY? getServiceSupabase() : getServerSupabase()
     if(!sub) return NextResponse.json({ error: 'unauthorized' },{ status: 401 })
     const { data: me } = await service.from('user_profiles').select('role').eq('user_id', sub).single()
     if(me?.role!=='admin') return NextResponse.json({ error: 'forbidden' },{ status: 403 })

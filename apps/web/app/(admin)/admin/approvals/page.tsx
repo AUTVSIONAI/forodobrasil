@@ -24,7 +24,9 @@ export default function ApprovalsPage(){
   const [sortDir,setSortDir]=useState<'asc'|'desc'>('desc')
 
   async function load(){
-    const a = await fetch('/api/admin/pending')
+    const { data: session } = await supabase.auth.getSession()
+    const token = session?.session?.access_token||''
+    const a = await fetch('/api/admin/pending',{ headers: token? { Authorization: `Bearer ${token}` } : undefined })
     if(!a.ok){
       const j = await a.json().catch(()=>({ error:'Falha ao carregar pendentes' }))
       setMsgKind('error'); setMsg(j.error||'Falha ao carregar pendentes')
@@ -33,9 +35,21 @@ export default function ApprovalsPage(){
     }
     const j = await a.json()
     const list:Pending[] = j.items||[]
-    const b = await supabase.from('regions').select('id,name').order('name')
+    // carregar regiões com fallback
+    let regionsData:Region[]=[]
+    try{
+      const r = await fetch('/api/common/regions')
+      if(r.ok){ const jr = await r.json(); regionsData = ((jr.items||[]) as Region[]) }
+      else{
+        const b = await supabase.from('regions').select('id,name').order('name')
+        regionsData = ((b.data ?? []) as Region[])
+      }
+    }catch{
+      const b = await supabase.from('regions').select('id,name').order('name')
+      regionsData = ((b.data ?? []) as Region[])
+    }
     setItems(list)
-    setRegions((b.data ?? []) as Region[])
+    setRegions(regionsData)
   }
   useEffect(()=>{ load() },[])
 

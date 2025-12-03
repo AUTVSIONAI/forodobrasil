@@ -36,8 +36,18 @@ export default function AdminUsuariosPage(){
     }
     const j = await resp.json()
     setItems((j.items||[]) as UserItem[])
-    const r = await supabase.from('regions').select('id,name').order('name')
-    setRegions((r.data ?? []) as Region[])
+    // carregar regiões com fallback
+    try{
+      const r = await fetch('/api/common/regions')
+      if(r.ok){ const jr = await r.json(); setRegions(((jr.items||[]) as Region[])) }
+      else{
+        const s = await supabase.from('regions').select('id,name').order('name')
+        setRegions(((s.data ?? []) as Region[]))
+      }
+    }catch{
+      const s = await supabase.from('regions').select('id,name').order('name')
+      setRegions(((s.data ?? []) as Region[]))
+    }
   }
   useEffect(()=>{ load() },[])
 

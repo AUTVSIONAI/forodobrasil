@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getServiceSupabase } from '@/lib/supabase/server'
+import { getServiceSupabase, getServerSupabase } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -8,7 +8,7 @@ type Pending={id:string;region_id:string|null;created_at:string}
 
 export async function GET(){
   try{
-    const s = getServiceSupabase()
+    const s = process.env.SUPABASE_SERVICE_ROLE_KEY? getServiceSupabase() : getServerSupabase()
     const pendRes = await s.from('pending_registrations').select('id,region_id,created_at').in('status',["pending","pendente"]) 
     const regsRes = await s.from('regions').select('id,code,name')
     const profRes = await s.from('user_profiles').select('user_id,region_id')
