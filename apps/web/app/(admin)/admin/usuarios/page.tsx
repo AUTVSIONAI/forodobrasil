@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
+import Alert from '@/components/Alert'
 
 type UserItem={user_id:string;email:string;created_at:string;full_name:string;role:string;region_id:string|null;region_name:string|null;disabled:boolean}
 type Region={id:string;name:string}
@@ -13,6 +14,7 @@ export default function AdminUsuariosPage(){
   const [region,setRegion]=useState('')
   const [loading,setLoading]=useState(false)
   const [saving,setSaving]=useState<string>('')
+  const [createMsg,setCreateMsg]=useState('')
   const [page,setPage]=useState(1)
   const [pageSize,setPageSize]=useState(20)
   const [sortKey,setSortKey]=useState<'full_name'|'email'|'role'|'region_name'|'created_at'>('full_name')
@@ -58,11 +60,16 @@ export default function AdminUsuariosPage(){
 
   async function createUser(){
     setSaving('new')
+    setCreateMsg('')
     const { data: session } = await supabase.auth.getSession()
     const token = session?.session?.access_token||''
     const res = await fetch('/api/admin/users/create',{ method:'POST', headers:{'Content-Type':'application/json', ...(token? { Authorization: `Bearer ${token}` } : {})}, body: JSON.stringify({ email: newEmail, password: newPass, full_name: newName }) })
     setSaving('')
-    if(res.ok){ setNewEmail(''); setNewName(''); setNewPass(''); load() }
+    if(res.ok){ setNewEmail(''); setNewName(''); setNewPass(''); setCreateMsg('Usuário criado com sucesso'); load() }
+    else{
+      const j = await res.json().catch(()=>({}))
+      setCreateMsg(j.error || 'Falha ao criar usuário')
+    }
   }
 
   const filtered = items.filter(u=>{
@@ -92,6 +99,7 @@ export default function AdminUsuariosPage(){
         <input className="input" placeholder="Nome" value={newName} onChange={e=>setNewName(e.target.value)} style={{maxWidth:220}} />
         <input className="input" placeholder="Senha" value={newPass} onChange={e=>setNewPass(e.target.value)} style={{maxWidth:220}} />
         <button className="btn" onClick={createUser} disabled={saving==='new'}>{saving==='new'? 'Criando...' : 'Criar usuário'}</button>
+        {createMsg && <Alert kind={createMsg.includes('sucesso')? 'info':'error'}>{createMsg}</Alert>}
       </div>
       <div className="row" style={{gap:8,marginBottom:12}}>
         <input className="input" placeholder="Buscar nome ou e-mail" value={q} onChange={e=>setQ(e.target.value)} />
