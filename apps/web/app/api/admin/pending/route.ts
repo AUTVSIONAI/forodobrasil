@@ -9,7 +9,7 @@ export async function GET(){
     const service = getServiceSupabase()
     const { data, error } = await service
       .from('pending_registrations')
-      .select('id, full_name, email, phone, region_id, requested_role, status, created_at')
+      .select('*')
       .eq('status','pending')
       .order('created_at',{ ascending: false })
     if(error) return NextResponse.json({ error: error.message },{ status: 400 })

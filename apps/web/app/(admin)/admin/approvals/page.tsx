@@ -3,7 +3,10 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import Alert from '@/components/Alert'
 
-type Pending={id:string;full_name:string;email:string;phone:string;region_id:string|null;requested_role:string;created_at:string}
+type Pending={
+  id:string;full_name:string;email:string;phone:string|null;region_id:string|null;requested_role:string;created_at:string;
+  instagram?:string|null;facebook?:string|null;twitter?:string|null;linkedin?:string|null;city?:string|null;state?:string|null;dob?:string|null;notes?:string|null
+}
 type Region={id:string;name:string}
 
 export default function ApprovalsPage(){
@@ -69,8 +72,8 @@ export default function ApprovalsPage(){
             const okR = !region || i.region_id===region
             return okQ && okR
           })
-          const header = ['id','full_name','email','phone','region_id','requested_role','created_at']
-          const rows = vis.map(i=> [i.id,i.full_name,i.email,i.phone||'',i.region_id||'',i.requested_role,i.created_at])
+          const header = ['id','full_name','email','phone','region_id','requested_role','created_at','instagram','facebook','twitter','linkedin','city','state','dob','notes']
+          const rows = vis.map(i=> [i.id,i.full_name,i.email,i.phone||'',i.region_id||'',i.requested_role,i.created_at,i.instagram||'',i.facebook||'',i.twitter||'',i.linkedin||'',i.city||'',i.state||'',i.dob||'',i.notes||''])
           const csv = [header.join(','), ...rows.map(r=> r.map(v=> '"'+String(v).replace(/"/g,'""')+'"').join(','))].join('\n')
           const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
           const url = URL.createObjectURL(blob)
@@ -125,6 +128,9 @@ export default function ApprovalsPage(){
               </td>
               <td><span className="badge pending">{i.requested_role}</span></td>
               <td>{i.created_at}</td>
+              <td style={{maxWidth:260,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+                {[i.instagram,i.facebook,i.twitter,i.linkedin].filter(Boolean).join(' • ') || '—'}
+              </td>
               <td>
                 <div className="row" style={{gap:8}}>
                   <select className="select" defaultValue={i.region_id||''} id={`region-${i.id}`}>

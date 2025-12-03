@@ -42,8 +42,22 @@ export async function POST(req: Request){
     if(!existing) return NextResponse.json({ error: createErr.message },{ status: 400 })
     userId = existing.id
   }
-  const { error: profileErr } = await service.from('user_profiles').upsert({ user_id: userId, full_name: pending.full_name, region_id, role }, { onConflict: 'user_id' })
-  if(profileErr) return NextResponse.json({ error: profileErr.message },{ status: 400 })
+  const extra = {
+    instagram: pending.instagram ?? null,
+    facebook: pending.facebook ?? null,
+    twitter: pending.twitter ?? null,
+    linkedin: pending.linkedin ?? null,
+    city: pending.city ?? null,
+    state: pending.state ?? null,
+    dob: pending.dob ?? null,
+    notes: pending.notes ?? null,
+  }
+  const fullPayload = { user_id: userId, full_name: pending.full_name, region_id, role, ...extra }
+  const { error: profileErr } = await service.from('user_profiles').upsert(fullPayload, { onConflict: 'user_id' })
+  if(profileErr){
+    const { error: profileErr2 } = await service.from('user_profiles').upsert({ user_id: userId, full_name: pending.full_name, region_id, role }, { onConflict: 'user_id' })
+    if(profileErr2) return NextResponse.json({ error: profileErr2.message },{ status: 400 })
+  }
   const { error: updErr } = await service.from('pending_registrations').update({ status:'approved', approved_at: new Date().toISOString() }).eq('id',id)
   if(updErr) return NextResponse.json({ error: updErr.message },{ status: 400 })
   return NextResponse.json({ ok: true, tempPassword: password })
