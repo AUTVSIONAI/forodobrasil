@@ -25,6 +25,12 @@ export default function ApprovalsPage(){
 
   async function load(){
     const a = await fetch('/api/admin/pending')
+    if(!a.ok){
+      const j = await a.json().catch(()=>({ error:'Falha ao carregar pendentes' }))
+      setMsgKind('error'); setMsg(j.error||'Falha ao carregar pendentes')
+      setItems([])
+      return
+    }
     const j = await a.json()
     const list:Pending[] = j.items||[]
     const b = await supabase.from('regions').select('id,name').order('name')
