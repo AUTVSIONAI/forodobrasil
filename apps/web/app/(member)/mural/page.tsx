@@ -120,18 +120,23 @@ export default function MuralPage(){
               </div>
               {Array.isArray(p.media_urls)&&p.media_urls.length>0&&(
                 <div className="row" style={{flexWrap:'wrap', marginTop:8}}>
-                  {p.media_urls.map((u:string,i:number)=> (
-                    <Image
-                      key={i}
-                      src={u}
-                      alt={p.title}
-                      width={800}
-                      height={450}
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      unoptimized
-                      style={{width:'100%',height:'auto',borderRadius:8}}
-                    />
-                  ))}
+                  {p.media_urls.map((u:string,i:number)=> {
+                    const isVideo = /(\.mp4|\.webm|\.ogg)$/i.test(u)
+                    return isVideo ? (
+                      <video key={i} src={u} controls style={{width:'100%', height:'auto', borderRadius:8}} />
+                    ) : (
+                      <Image
+                        key={i}
+                        src={u}
+                        alt={p.title}
+                        width={800}
+                        height={450}
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        unoptimized
+                        style={{width:'100%',height:'auto',borderRadius:8}}
+                      />
+                    )
+                  })}
                 </div>
               )}
               <div className="row" style={{gap:8, marginTop:8}}>

@@ -12,6 +12,9 @@ export default function AdminMuralPage(){
   const [type,setType]=useState('normal')
   const [region_id,setRegionId]=useState('')
   const [media,setMedia]=useState('')
+  const [mediaSource,setMediaSource]=useState<'urls'|'files'>('urls')
+  const [files,setFiles]=useState<File[]>([])
+  const [previews,setPreviews]=useState<string[]>([])
   const [posts,setPosts]=useState<Post[]>([])
   const [regions,setRegions]=useState<Region[]>([])
   const [typeFilter,setTypeFilter]=useState('any')
@@ -24,11 +27,24 @@ export default function AdminMuralPage(){
     setStatus('')
     const media_urls = media? media.split(',').map(s=>s.trim()).filter(Boolean):[]
     try{
+      let finalMedia = [...media_urls]
+      if(mediaSource==='files' && files.length>0){
+        const ups:string[]=[]
+        for(const f of files){
+          const ext = (f.name.split('.').pop()||'bin').toLowerCase()
+          const name = `mural_${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`
+          const up = await supabase.storage.from('mural').upload(name, f, { contentType: f.type||'application/octet-stream', upsert: false })
+          if(up.error){ setStatus(up.error.message||'Falha ao enviar arquivo'); return }
+          const pub = supabase.storage.from('mural').getPublicUrl(name)
+          ups.push(pub.data.publicUrl)
+        }
+        finalMedia = [...finalMedia, ...ups]
+      }
       const { data: session } = await supabase.auth.getSession()
       const token = session?.session?.access_token||''
-      const res = await fetch('/api/admin/mural/create',{ method:'POST', headers:{ 'Content-Type':'application/json', ...(token? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ title, body, type, region_id, media_urls }) })
+      const res = await fetch('/api/admin/mural/create',{ method:'POST', headers:{ 'Content-Type':'application/json', ...(token? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ title, body, type, region_id: region_id||null, media_urls: finalMedia }) })
       if(!res.ok){ const j = await res.json().catch(()=>({})); setStatus(j.error||'Falha ao publicar'); return }
-      setTitle(''); setBody(''); setType('normal'); setRegionId(''); setMedia(''); setStatus('Publicado com sucesso');
+      setTitle(''); setBody(''); setType('normal'); setRegionId(''); setMedia(''); setFiles([]); setPreviews([]); setMediaSource('urls'); setStatus('Publicado com sucesso');
       load()
     }catch(e: unknown){ setStatus(e instanceof Error? e.message : 'Erro inesperado') }
   }
@@ -70,7 +86,39 @@ export default function AdminMuralPage(){
           <option value="evento">evento</option>
         </select>
         <input className="input" placeholder="Região (opcional)" value={region_id} onChange={e=>setRegionId(e.target.value)} />
-        <input className="input" placeholder="URLs de mídia separados por vírgula" value={media} onChange={e=>setMedia(e.target.value)} />
+        <div className="row" style={{gap:8}}>
+          <button className={mediaSource==='urls'? 'btn' : 'btn secondary'} onClick={()=>setMediaSource('urls')}>URLs</button>
+          <button className={mediaSource==='files'? 'btn' : 'btn secondary'} onClick={()=>setMediaSource('files')}>Arquivos</button>
+        </div>
+        {mediaSource==='urls' && (
+          <input className="input" placeholder="URLs de mídia separados por vírgula" value={media} onChange={e=>setMedia(e.target.value)} />
+        )}
+        {mediaSource==='files' && (
+          <>
+            <input className="input" type="file" accept="image/*,video/*" multiple onChange={e=>{
+              const arr = Array.from(e.target.files||[])
+              setFiles(arr)
+              const urls = arr.map(f=> URL.createObjectURL(f))
+              setPreviews(urls)
+            }} />
+            {previews.length>0 && (
+              <div className="row" style={{gap:8, flexWrap:'wrap'}}>
+                {previews.map((u,i)=> (
+                  <div key={i} style={{width:180}}>
+                    {(()=>{
+                      const isVideo = /(\.mp4|\.webm|\.ogg)$/i.test(u) || (files[i]?.type||'').startsWith('video/')
+                      return isVideo? (
+                        <video src={u} controls style={{width:'100%',borderRadius:8}} />
+                      ) : (
+                        <img src={u} style={{width:'100%',height:'auto',borderRadius:8}} />
+                      )
+                    })()}
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
         <button className="btn" onClick={publish}>Publicar</button>
         {status && <Alert kind={status.includes('sucesso')? 'info':'error'}>{status}</Alert>}
       </div>
