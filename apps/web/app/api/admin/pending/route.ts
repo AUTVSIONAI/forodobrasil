@@ -34,7 +34,7 @@ export async function GET(){
     if(error){
       const msg = typeof error.message==='string'? error.message : 'erro'
       const code = msg.toLowerCase().includes('permission')? 403 : 400
-      return NextResponse.json({ error: msg },{ status: code })
+      return NextResponse.json({ error: msg, logs: { filter: 'or(status.eq.pending,status.eq.pendente)', service_role: !!process.env.SUPABASE_SERVICE_ROLE_KEY } },{ status: code })
     }
     return NextResponse.json({ items: data||[] })
   }catch(e: unknown){

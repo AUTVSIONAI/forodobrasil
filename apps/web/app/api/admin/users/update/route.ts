@@ -43,10 +43,10 @@ export async function POST(req: Request){
     if(typeof region_id==='string' || region_id===null) payloadUpdate.region_id = (region_id??null) as string|null
     if(typeof role==='string') payloadUpdate.role = role
     const { error } = await service.from('user_profiles').upsert(payloadUpdate, { onConflict: 'user_id' })
-    if(error) return NextResponse.json({ error: error.message },{ status: 400 })
+    if(error) return NextResponse.json({ error: error.message, logs: { payload: payloadUpdate, service_role: !!process.env.SUPABASE_SERVICE_ROLE_KEY } },{ status: 400 })
     return NextResponse.json({ ok: true })
   }catch(e: unknown){
     const msg = e instanceof Error ? e.message : 'erro'
-    return NextResponse.json({ error: msg },{ status: 500 })
+    return NextResponse.json({ error: msg, logs: { service_role: !!process.env.SUPABASE_SERVICE_ROLE_KEY } },{ status: 500 })
   }
 }
