@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
 
 export default function DashboardPage(){
-  type Profile={full_name?:string;role?:string;region_id?:string|null}
+  type Profile={full_name?:string;role?:string;region_id?:string|null;region_name?:string|null}
   const [profile,setProfile]=useState<Profile|null>(null)
   const [count,setCount]=useState<number>(0)
   type Post={id:string;title:string;type:string;published_at:string|null;region_id:string|null}
@@ -59,7 +59,7 @@ export default function DashboardPage(){
         </div>
         <div className="stat">
           <div className="subtitle">Região</div>
-          <div className="statValue">{profile?.region_id||'—'}</div>
+          <div className="statValue">{profile?.region_name||'—'}</div>
         </div>
       </div>
       <div className="grid" style={{marginTop:16}}>

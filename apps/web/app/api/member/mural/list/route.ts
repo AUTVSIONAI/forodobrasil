@@ -10,7 +10,8 @@ export async function GET(req: Request){
     const { searchParams } = new URL(req.url)
     const type = searchParams.get('type')||''
     const region_id = searchParams.get('region_id')||''
-    const limit = Number(searchParams.get('limit')||'50')
+    const limitParam = Number(searchParams.get('limit')||'')
+    const limit = Number.isFinite(limitParam) && limitParam>0 ? Math.min(limitParam, 200) : 200
     let q = s
       .from('mural_posts')
       .select('id,title,body,media_urls,type,region_id,published_at')
