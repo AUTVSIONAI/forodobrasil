@@ -29,7 +29,9 @@ export async function GET(req: Request){
     const users: Array<{ id: string; email: string|null; created_at: string; user_metadata: Record<string,unknown>|null }> = []
     for(let i=0;i<25;i++){
       const list = await service.auth.admin.listUsers({ page, perPage })
-      if(list.error) return NextResponse.json({ error: list.error.message },{ status: 400 })
+      if(list.error){
+        break
+      }
       const chunk = (list.data?.users||[]) as Array<{ id: string; email: string|null; created_at: string; user_metadata: Record<string,unknown>|null }>
       users.push(...chunk)
       if(chunk.length < perPage) break

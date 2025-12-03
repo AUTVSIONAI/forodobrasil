@@ -10,7 +10,7 @@ export async function GET(){
     const { data, error } = await service
       .from('pending_registrations')
       .select('*')
-      .eq('status','pending')
+      .in('status',["pending","pendente"]) 
       .order('created_at',{ ascending: false })
     if(error) return NextResponse.json({ error: error.message },{ status: 400 })
     return NextResponse.json({ items: data||[] })
