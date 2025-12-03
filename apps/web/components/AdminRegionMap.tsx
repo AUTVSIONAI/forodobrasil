@@ -75,8 +75,8 @@ export default function AdminRegionMap(){
   return (
     <div style={{width:'100%'}}>
       <div className="subtitle" style={{marginBottom:8}}>Mapa real (OpenStreetMap) de membros por região</div>
-      <div style={{marginLeft:'calc(50% - 50vw)', marginRight:'calc(50% - 50vw)'}}>
-        <div ref={mapElRef} style={{width:'100vw', maxWidth:1400, height:720, borderRadius:8, overflow:'hidden', margin:'0 auto'}} />
+      <div>
+        <div ref={mapElRef} style={{width:'100%', height:420, borderRadius:8, overflow:'hidden'}} />
       </div>
     </div>
   )
