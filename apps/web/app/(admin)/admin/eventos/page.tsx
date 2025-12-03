@@ -32,7 +32,7 @@ export default function AdminEventosPage(){
   async function load(){
     const r = await supabase.from('regions').select('id,name').order('name')
     setRegions(((r.data ?? []) as Region[]))
-    let q = supabase.from('events').select('id,title,description,start_at,end_at,region_id,published_at').order('start_at',{ascending:false})
+    let q = supabase.from('events').select('id,title,description,start_at,end_at,region_id,is_official,published_at').order('start_at',{ascending:false})
     if(regionFilter) q = q.eq('region_id', regionFilter)
     const { data } = await q.range((page-1)*pageSize, page*pageSize-1)
     setEvents(((data ?? []) as EventItem[]))
@@ -45,7 +45,7 @@ export default function AdminEventosPage(){
     (async()=>{
       const r = await supabase.from('regions').select('id,name').order('name')
       setRegions(((r.data ?? []) as Region[]))
-      let q = supabase.from('events').select('id,title,description,start_at,end_at,region_id,published_at').order('start_at',{ascending:false}).limit(50)
+      let q = supabase.from('events').select('id,title,description,start_at,end_at,region_id,is_official,published_at').order('start_at',{ascending:false}).limit(50)
       if(regionFilter) q = q.eq('region_id', regionFilter)
       const { data } = await q
       setEvents(((data ?? []) as EventItem[]))
