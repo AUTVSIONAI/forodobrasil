@@ -24,9 +24,17 @@ export async function GET(req: Request){
     if(!sub) return NextResponse.json({ error: 'unauthorized' },{ status: 401 })
     const { data: me } = await service.from('user_profiles').select('role').eq('user_id', sub).single()
     if(me?.role!=='admin') return NextResponse.json({ error: 'forbidden' },{ status: 403 })
-    const list = await service.auth.admin.listUsers({ perPage: 200 })
-    if(list.error) return NextResponse.json({ error: list.error.message },{ status: 400 })
-    const users = list.data?.users||[]
+    let page = 1
+    const perPage = 200
+    const users: Array<{ id: string; email: string|null; created_at: string; user_metadata: Record<string,unknown>|null }> = []
+    for(let i=0;i<25;i++){
+      const list = await service.auth.admin.listUsers({ page, perPage })
+      if(list.error) return NextResponse.json({ error: list.error.message },{ status: 400 })
+      const chunk = (list.data?.users||[]) as Array<{ id: string; email: string|null; created_at: string; user_metadata: Record<string,unknown>|null }>
+      users.push(...chunk)
+      if(chunk.length < perPage) break
+      page++
+    }
     const { data: profiles } = await service.from('user_profiles').select('user_id,full_name,role,region_id')
     const { data: regions } = await service.from('regions').select('id,name')
     const rmap = {} as Record<string,string>
@@ -44,6 +52,22 @@ export async function GET(req: Request){
         region_id: p?.region_id||null,
         region_name: p?.region_id? (rmap[p.region_id]||null) : null,
         disabled,
+      }
+    })
+    // include any profiles that do not have a corresponding auth user (fallback)
+    const knownIds = new Set(users.map(u=>u.id));
+    (profiles||[]).forEach((p: { user_id: string; full_name: string|null; role: string|null; region_id: string|null })=>{
+      if(!knownIds.has(p.user_id)){
+        items.push({
+          user_id: p.user_id,
+          email: null,
+          created_at: new Date().toISOString(),
+          full_name: p.full_name||'',
+          role: p.role||'membro',
+          region_id: p.region_id||null,
+          region_name: p.region_id? (rmap[p.region_id]||null) : null,
+          disabled: false,
+        })
       }
     })
     return NextResponse.json({ items })
