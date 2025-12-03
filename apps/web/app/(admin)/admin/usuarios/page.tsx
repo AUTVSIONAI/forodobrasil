@@ -61,6 +61,10 @@ export default function AdminUsuariosPage(){
     const res = await fetch('/api/admin/users/update',{ method:'POST', headers:{'Content-Type':'application/json', ...(token? { Authorization: `Bearer ${token}` } : {})}, body: JSON.stringify({ user_id, full_name, region_id: region_id||null, role }) })
     setSaving('')
     if(res.ok) load()
+    else{
+      const j = await res.json().catch(()=>({}))
+      alert(j.error || 'Falha ao salvar alterações')
+    }
   }
 
   async function toggleDisabled(user_id:string, disabled:boolean){
