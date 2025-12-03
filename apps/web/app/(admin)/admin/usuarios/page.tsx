@@ -29,7 +29,11 @@ export default function AdminUsuariosPage(){
     const token = session?.session?.access_token||''
     const resp = await fetch('/api/admin/users/list',{ headers: token? { Authorization: `Bearer ${token}` } : undefined })
     setLoading(false)
-    if(!resp.ok) return
+    if(!resp.ok){
+      const j = await resp.json().catch(()=>({}))
+      alert(j.error || 'Falha ao carregar usuários')
+      return
+    }
     const j = await resp.json()
     setItems((j.items||[]) as UserItem[])
     const r = await supabase.from('regions').select('id,name').order('name')
