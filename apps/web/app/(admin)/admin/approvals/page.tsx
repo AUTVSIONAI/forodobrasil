@@ -39,7 +39,11 @@ export default function ApprovalsPage(){
     const token = session?.session?.access_token||''
     const res = await fetch('/api/admin/approve',{ method:'POST', headers:{'Content-Type':'application/json', ...(token? { Authorization: `Bearer ${token}` } : {})}, body: JSON.stringify({ id, region_id, role }) })
     setLoading(false)
-    if(res.ok){ setMsgKind('info'); setMsg('Aprovado com sucesso'); load() }
+    if(res.ok){
+      setMsgKind('info');
+      setMsg('Aprovado com sucesso')
+      setItems(prev=> prev.filter(i=> i.id!==id))
+    }
     else{ const j = await res.json().catch(()=>({ error:'Erro' })); setMsgKind('error'); setMsg(j.error||'Erro ao aprovar') }
   }
 
@@ -49,7 +53,11 @@ export default function ApprovalsPage(){
     const token = session?.session?.access_token||''
     const res = await fetch('/api/admin/reject',{ method:'POST', headers:{'Content-Type':'application/json', ...(token? { Authorization: `Bearer ${token}` } : {})}, body: JSON.stringify({ id }) })
     setLoading(false)
-    if(res.ok){ setMsgKind('info'); setMsg('Reprovado'); load() }
+    if(res.ok){
+      setMsgKind('info');
+      setMsg('Reprovado')
+      setItems(prev=> prev.filter(i=> i.id!==id))
+    }
     else{ const j = await res.json().catch(()=>({ error:'Erro' })); setMsgKind('error'); setMsg(j.error||'Erro ao reprovar') }
   }
 
