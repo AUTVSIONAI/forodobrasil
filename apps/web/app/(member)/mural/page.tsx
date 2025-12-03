@@ -5,6 +5,8 @@ import Alert from '@/components/Alert'
 
 type Region={id:string;name:string}
 type Post={id:string;title:string;body:string;media_urls?:string[];type:string;region_id:string|null;published_at:string|null}
+type LikeState={count:number;liked:boolean}
+type Comment={id:string;post_id:string;user_id:string;body:string;created_at:string}
 
 export default function MuralPage(){
   const [posts,setPosts]=useState<Post[]>([])
@@ -15,6 +17,9 @@ export default function MuralPage(){
   const [loadingR,setLoadingR]=useState(false)
   const [loading,setLoading]=useState(false)
   const [errR,setErrR]=useState('')
+  const [likes,setLikes]=useState<Record<string,LikeState>>({})
+  const [showComment,setShowComment]=useState<Record<string,boolean>>({})
+  const [commentText,setCommentText]=useState<Record<string,string>>({})
 
   useEffect(()=>{
     (async()=>{
@@ -37,6 +42,12 @@ export default function MuralPage(){
       if(!resp.ok){ setLoading(false); return }
       const j = await resp.json()
       setPosts(((j.items ?? []) as Post[]))
+      const likeEntries: Record<string,LikeState> = {}
+      await Promise.all(((j.items||[]) as Post[]).map(async (p:Post)=>{
+        const r = await fetch('/api/member/mural/likes/count?post_id='+p.id)
+        if(r.ok){ const lr = await r.json(); likeEntries[p.id] = { count: lr.count||0, liked: !!lr.liked } }
+      }))
+      setLikes(likeEntries)
       setLoading(false)
     })()
   },[typeFilter,regionFilter])
@@ -121,6 +132,44 @@ export default function MuralPage(){
                       style={{width:'100%',height:'auto',borderRadius:8}}
                     />
                   ))}
+                </div>
+              )}
+              <div className="row" style={{gap:8, marginTop:8}}>
+                <button className={likes[p.id]?.liked? 'btn secondary':'btn'} onClick={async()=>{
+                  const liked = !!likes[p.id]?.liked
+                  await fetch('/api/member/mural/likes/toggle',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ post_id: p.id, like: !liked }) })
+                  const c = await fetch('/api/member/mural/likes/count?post_id='+p.id)
+                  if(c.ok){ const cj = await c.json(); setLikes(s=> ({...s, [p.id]: { count: cj.count||0, liked: !!cj.liked }})) }
+                }}>{(likes[p.id]?.liked? 'Curtido':'Curtir')+(typeof likes[p.id]?.count==='number'?` (${likes[p.id]?.count})`: '')}</button>
+                <button className="btn secondary" onClick={()=>{
+                  setShowComment(sc=> ({...sc, [p.id]: !sc[p.id]}))
+                  if(!showComment[p.id]){
+                    fetch('/api/member/mural/comments/list?post_id='+p.id).then(r=> r.json()).then(j=>{
+                      const list = (j.items||[]) as Comment[]
+                      const el = document.getElementById('comments-'+p.id)
+                      if(el) el.innerHTML = list.slice(0,5).map(c=> `<div style="margin:4px 0"><span style="opacity:.7">${new Date(c.created_at).toLocaleString()}</span> — ${c.body}</div>`).join('')
+                    })
+                  }
+                }}>Comentar</button>
+                <button className="btn" onClick={()=>{
+                  const url = `${location.origin}/mural`
+                  const navi = navigator as Navigator & { share?: (d:{ title:string; text:string; url:string })=> Promise<void> }
+                  if(navi.share){ navi.share({ title: p.title, text: p.body, url }).catch(()=>{}) }
+                  else{ navigator.clipboard.writeText(url).catch(()=>{}); alert('Link copiado') }
+                }}>Compartilhar</button>
+              </div>
+              {showComment[p.id] && (
+                <div className="col" style={{gap:8, marginTop:8}}>
+                  <div id={'comments-'+p.id}></div>
+                  <div className="row" style={{gap:8}}>
+                    <input className="input" placeholder="Escreva um comentário" value={commentText[p.id]||''} onChange={e=> setCommentText(ct=> ({...ct, [p.id]: e.target.value}))} />
+                    <button className="btn" onClick={async()=>{
+                      const text = (commentText[p.id]||'').trim()
+                      if(!text) return
+                      const res = await fetch('/api/member/mural/comments/create',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ post_id: p.id, body: text }) })
+                      if(res.ok){ setCommentText(ct=> ({...ct, [p.id]: ''})); const el = document.getElementById('comments-'+p.id); if(el){ const now = new Date().toLocaleString(); el.innerHTML = `<div style="margin:4px 0"><span style="opacity:.7">${now}</span> — ${text}</div>` + el.innerHTML } }
+                    }}>Enviar</button>
+                  </div>
                 </div>
               )}
             </div>

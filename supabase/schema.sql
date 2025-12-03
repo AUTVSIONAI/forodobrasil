@@ -71,6 +71,24 @@ create index mural_posts_type_idx on public.mural_posts(type);
 create index mural_posts_region_idx on public.mural_posts(region_id);
 create index mural_posts_published_at_idx on public.mural_posts(published_at desc);
 
+create table public.mural_comments (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null references public.mural_posts(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  body text not null,
+  created_at timestamptz not null default now()
+);
+create index mural_comments_post_idx on public.mural_comments(post_id);
+create index mural_comments_created_idx on public.mural_comments(created_at desc);
+
+create table public.mural_likes (
+  post_id uuid not null references public.mural_posts(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (post_id, user_id)
+);
+create index mural_likes_post_idx on public.mural_likes(post_id);
+
 create table public.videos (
   id uuid primary key default gen_random_uuid(),
   title text not null,
@@ -148,6 +166,9 @@ alter table public.chat_rooms enable row level security;
 alter table public.chat_members enable row level security;
 alter table public.chat_messages enable row level security;
 
+alter table public.mural_comments enable row level security;
+alter table public.mural_likes enable row level security;
+
 create or replace function public.is_admin() returns boolean language sql stable as $$
 select exists (select 1 from public.user_profiles up where up.user_id = auth.uid() and up.role = 'admin')
 $$;
@@ -175,6 +196,45 @@ create policy mural_select_all on public.mural_posts for select using (
   )
 );
 create policy mural_admin_all on public.mural_posts for all using (public.is_admin()) with check (public.is_admin());
+
+create policy mural_comments_select_all on public.mural_comments for select using (
+  auth.role() = 'authenticated' and exists (
+    select 1 from public.mural_posts mp
+    left join public.user_profiles me on me.user_id = auth.uid()
+    where mp.id = mural_comments.post_id
+      and (mp.region_id is null or me.region_id = mp.region_id)
+  )
+);
+create policy mural_comments_insert_auth on public.mural_comments for insert with check (
+  auth.role() = 'authenticated' and user_id = auth.uid() and exists (
+    select 1 from public.mural_posts mp
+    left join public.user_profiles me on me.user_id = auth.uid()
+    where mp.id = mural_comments.post_id
+      and (mp.region_id is null or me.region_id = mp.region_id)
+  )
+);
+create policy mural_comments_admin_all on public.mural_comments for all using (public.is_admin()) with check (public.is_admin());
+
+create policy mural_likes_select_all on public.mural_likes for select using (
+  auth.role() = 'authenticated' and exists (
+    select 1 from public.mural_posts mp
+    left join public.user_profiles me on me.user_id = auth.uid()
+    where mp.id = mural_likes.post_id
+      and (mp.region_id is null or me.region_id = mp.region_id)
+  )
+);
+create policy mural_likes_insert_auth on public.mural_likes for insert with check (
+  auth.role() = 'authenticated' and user_id = auth.uid() and exists (
+    select 1 from public.mural_posts mp
+    left join public.user_profiles me on me.user_id = auth.uid()
+    where mp.id = mural_likes.post_id
+      and (mp.region_id is null or me.region_id = mp.region_id)
+  )
+);
+create policy mural_likes_delete_self on public.mural_likes for delete using (
+  auth.role() = 'authenticated' and user_id = auth.uid()
+);
+create policy mural_likes_admin_all on public.mural_likes for all using (public.is_admin()) with check (public.is_admin());
 
 create policy videos_select_all on public.videos for select using (
   auth.role() = 'authenticated' and (
