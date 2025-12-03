@@ -29,7 +29,7 @@ export async function GET(){
     const { data, error } = await service
       .from('pending_registrations')
       .select('*')
-      .in('status',["pending","pendente"]) 
+      .or('status.eq.pending,status.eq.pendente')
       .order('created_at',{ ascending: false })
     if(error){
       const msg = typeof error.message==='string'? error.message : 'erro'

@@ -24,7 +24,7 @@ export default async function AdminPage(){
     { count: chatsCount },
     { count: regionsCount },
   ] = await Promise.all([
-    service.from('pending_registrations').select('id', { count: 'exact', head: true }).in('status',["pending","pendente"]),
+    service.from('pending_registrations').select('id', { count: 'exact', head: true }).or('status.eq.pending,status.eq.pendente'),
     service.from('user_profiles').select('user_id', { count: 'exact', head: true }),
     service.from('mural_posts').select('id', { count: 'exact', head: true }),
     service.from('events').select('id', { count: 'exact', head: true }).gte('start_at', nowIso),
@@ -39,11 +39,11 @@ export default async function AdminPage(){
   const [{ data: recentPosts }, { data: upcomingEvents }, { data: recentPendings }] = await Promise.all([
     service.from('mural_posts').select('id,title,type,published_at').order('published_at',{ascending:false}).limit(5),
     service.from('events').select('id,title,start_at,region_id').gte('start_at', nowIso).order('start_at',{ascending:true}).limit(5),
-    service.from('pending_registrations').select('id,full_name,requested_role,created_at').in('status',["pending","pendente"]).order('created_at',{ascending:true}).limit(5),
+    service.from('pending_registrations').select('id,full_name,requested_role,created_at').or('status.eq.pending,status.eq.pendente').order('created_at',{ascending:true}).limit(5),
   ])
   const since = new Date(Date.now() - 14*24*3600*1000).toISOString()
   const [{ data: pendingCreated }, { data: membersCreated }] = await Promise.all([
-    service.from('pending_registrations').select('created_at').in('status',["pending","pendente"]).gte('created_at', since),
+    service.from('pending_registrations').select('created_at').or('status.eq.pending,status.eq.pendente').gte('created_at', since),
     service.from('user_profiles').select('created_at').gte('created_at', since),
   ])
   function countsByDay(rows:(CreatedRow[])|null){
